@@ -1,15 +1,13 @@
 
 import * as React from 'react';
-import {View, Image, StyleSheet, Dimensions, StatusBar} from 'react-native';
+import {StatusBar} from 'react-native';
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
-
-
-import MainScreen from './screen/MainScreen';
 
 import Login from './screen/Login';
 import Splash from './screen/Splash';
 import ScannerScreen from './screen/ScannerScreen';
+import { bgColor } from './screen/constant';
 
 const Stack = createNativeStackNavigator();
 
@@ -17,7 +15,7 @@ const Stack = createNativeStackNavigator();
 const App = () => {
   return (
     <NavigationContainer>
-       <StatusBar backgroundColor="#276A76" barStyle="light-content" />
+       <StatusBar backgroundColor={bgColor} barStyle="light-content" />
       <Stack.Navigator initialRouteName="Splash">
         <Stack.Screen
           name="Splash"

@@ -4,10 +4,7 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  KeyboardAvoidingView,
-  Keyboard,
   Button,
-  Platform,
   ActivityIndicator,
   ScrollView,
   Dimensions,
@@ -19,12 +16,7 @@ import {
 } from 'react-native';
 import React, {useState, useEffect} from 'react';
 import {useNavigation} from '@react-navigation/native';
-import {
-  ALERT_TYPE,
-  Dialog,
-  AlertNotificationRoot,
-  Toast,
-} from 'react-native-alert-notification';
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Camera,
@@ -36,10 +28,8 @@ import RNRestart from 'react-native-restart';
 import {check, request, PERMISSIONS, RESULTS} from 'react-native-permissions';
 import NetworkError from './NetworkError';
 import NetworkStatus from './NetworkStatus';
-import {MMKVLoader, useMMKVStorage} from 'react-native-mmkv-storage';
+import NetInfo from '@react-native-community/netinfo';
 import { bgColor, secondaryColor } from './constant';
-import Icon from 'react-native-vector-icons/MaterialIcons'; 
-const storage = new MMKVLoader().initialize();
 // storage.clearStore();
 const wW = Dimensions.get('screen').width;
 const wH = Dimensions.get('screen').height;
@@ -54,27 +44,7 @@ const ScannerScreen = () => {
 
   //Keyboard Variables=========================================================================
 
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
-  useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener(
-      'keyboardDidShow',
-      event => {
-        setKeyboardHeight(event.endCoordinates.height);
-      },
-    );
 
-    const keyboardDidHideListener = Keyboard.addListener(
-      'keyboardDidHide',
-      () => {
-        setKeyboardHeight(0);
-      },
-    );
-
-    return () => {
-      keyboardDidShowListener.remove();
-      keyboardDidHideListener.remove();
-    };
-  }, []);
   const showAlert = () => {
     Alert.alert(
       'Info',
@@ -159,12 +129,12 @@ useEffect(() => {
   const checkLoginStatus = async () => {
     try {
       const response = await AsyncStorage.getItem('response'); // Check if the response exists in AsyncStorage
-      console.log('Response: on main screen', response);  // Log the response to check what you have
+     // console.log('Response: on main screen', response);  // Log the response to check what you have
       
       if (response) {
         setUid(response)
       } else {
-        alert.Alert('Error','please login againg')
+        Alert.alert('Error','please login again')
         navigation.navigate('Login')
       }
     } catch (error) {
@@ -227,15 +197,15 @@ useEffect(() => {
           setCameraActive(false);        // Stop camera
           setlittleLoading(true);        // Start showing loader
   
-          console.log('Scanned QR Code:', scannedCode);
+         // console.log('Scanned QR Code:', scannedCode);
   
           setTimeout(() => {             // After 2 seconds show scanned data
             setlittleLoading(false);     // Stop showing loader
             setScannedData(scannedCode); // Show the scanned data
-          }, 1000);
+          }, 500);
         }
       } catch (error) {
-        console.error('Error during scanning:', error);
+        //console.error('Error during scanning:', error);
         setScannedData('Scan Error!');
         setlittleLoading(false);
       }
@@ -268,6 +238,15 @@ useEffect(() => {
 
 
   const postData = async (Uid, ScannedData) => {
+      const netState = await NetInfo.fetch();
+          if (!netState.isConnected) {
+            Alert.alert('No Internet', 'Please check your connection.');
+            return;
+          }
+          if(!ScannedData){
+            Alert.alert('Validation Error','Please Scan First')
+            return;
+          }
     try {
       setIsLoading(true);
       const formData = new FormData();
@@ -282,15 +261,15 @@ useEffect(() => {
           'Content-Type': 'multipart/form-data',
         },
       });
-  console.log('formdata',formData)
+ // console.log('formdata',formData)
       const result = await response.text();
-      console.log('Post result:', result);
+      //console.log('Post result:', result);
   
       if (result.includes('MSUCCESS')) {
-        Alert.alert('Success', 'Data posted successfully!');
+        Alert.alert('Success', `Data posted successfully!${result}`);
         setScannedData('');
       } else {
-        Alert.alert('Error', 'Failed to post data. Please try again.');
+        Alert.alert('Error', `Failed to post data. Please try again. Reason: ${result}`);
       }
     } catch (error) {
       console.error('Error during post request:', error);
@@ -306,7 +285,7 @@ useEffect(() => {
   
 
   return (
-    <AlertNotificationRoot>
+   <>
       <NetworkError />
      
         <ScrollView
@@ -412,7 +391,6 @@ useEffect(() => {
                             onPress: () => {
                               AsyncStorage.setItem('response', '');
                               navigation.replace('Login');
-                              storage.clearStore();
                             },
                           },
                         ],
@@ -545,8 +523,8 @@ useEffect(() => {
             </View>
           </Modal>
         </ScrollView>
-      
-    </AlertNotificationRoot>
+        </>
+  
   );
 };
 

@@ -4,131 +4,39 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  KeyboardAvoidingView,
-  Button,
-  Platform,
-  Animated,
   ActivityIndicator,
   ScrollView,
   StatusBar,
   Dimensions,
   Image,
-  Touchable,
   Pressable,Alert
 } from 'react-native';
-import React, {useState, useEffect} from 'react';
+import React, {useState} from 'react';
 import {useNavigation} from '@react-navigation/native';
-import {
-  ALERT_TYPE,
-  Dialog,
-  AlertNotificationRoot,
-  Toast,
-} from 'react-native-alert-notification';
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { bgColor, secondaryColor } from './constant';
-
+import NetInfo from '@react-native-community/netinfo';
 const wW = Dimensions.get('screen').width;
 const wH = Dimensions.get('screen').height;
 let isFine;
 wW < 400 ? (isFine = true) : (isFine = false);
 
 const Login = () => {
-  console.log(isFine, wW);
+ // console.log(isFine, wW);
   const navigation = useNavigation();
   const [IsLoading, setIsLoading] = useState(false);
-  const [LocationCode, setLocationCode] = useState('');
   const [UserName, setUserName] = useState('');
   const [Password, setPassword] = useState('');
 
  
-  const Warning = ({Type_warning = 'a', title, body}) => {
-    if (Type_warning === 'e') {
-      // Assuming ALERT_TYPE.WARNING is defined elsewhere in your code
-      Dialog.show({
-        type: ALERT_TYPE.WARNING,
-        title: title,
-        textBody: body,
-        button: 'close',
-      });
-    } else {
-      // Assuming ALERT_TYPE.DANGER is defined elsewhere in your code
-      Dialog.show({
-        type: ALERT_TYPE.DANGER,
-        title: title,
-        textBody: body,
-        button: 'close',
-      });
-    }
-  };
+ 
 
-  const Authenticate = () => {
-    if (UserName.length !== 0 || Password.length !== 0) {
-      if (LocationCode.length !== 0) {
-        setIsLoading(true);
 
-        const raw = '';
-
-        const requestOptions = {
-          method: 'POST',
-          body: raw,
-          redirect: 'follow',
-        };
-
-        fetch(
-          `https://tsm.tranzol.com/api/v2/authenticate?u=${UserName}&p=${Password}`,
-          requestOptions,
-        )
-          .then(response => response.text())
-
-          .then(result => {
-            console.log('result', result, typeof result);
-            if (result.includes('SUCCESS')) {
-              AsyncStorage.setItem('response', result);
-              AsyncStorage.setItem('UserName', UserName);
-              AsyncStorage.setItem('LocationCode', LocationCode);
-              setIsLoading(false);
-              console.log(result);
-              navigation.replace('MainScreen');
-            } else {
-              setIsLoading(false);
-              console.log(result);
-              Warning({
-                Type_warning: 'e',
-                title: 'Invalid Credentials',
-                body: 'ERROR',
-              });
-            }
-          })
-          .catch(error => {
-            setIsLoading(false);
-            console.log(error);
-            Warning({
-              Type_warning: 'e',
-              body: 'Check Internet Connection',
-              title: 'Network Error',
-            });
-          });
-        setUserName('');
-        setPassword('');
-      } else {
-        Warning({
-          Type_warning: 'e',
-          title: 'Enter Location Code',
-          body: 'ERROR',
-        });
-      }
-    } else {
-      Warning({
-        Type_warning: 'e',
-        title: 'Invalid Credentials',
-        body: 'ERROR',
-      });
-    }
-  };
   const [passwordVisible, setpasswordVisible] = useState(false);
 
   const showPassword = () => {
-    console.log(passwordVisible);
+   // console.log(passwordVisible);
     setpasswordVisible(!passwordVisible);
   };
   
@@ -151,10 +59,15 @@ const Login = () => {
       );
   
       const result = await response.text(); // Get the response as plain text
-  
-      return result.includes('SUCCESS'); // Return true if login is successful
+  //console.log(result)
+      if (result.includes('SUCCESS')) {
+        return true;
+      } else {
+        Alert.alert('Login Failed', `${result}`); // Show the full response in alert if not successful
+        return false;
+      }
     } catch (error) {
-      console.error('Login Error:', error);
+      //console.error('Login Error:', error);
       Alert.alert('Error', 'Something went wrong. Please try again.');
       return false;
     } finally {
@@ -169,6 +82,12 @@ const Login = () => {
       return;
     }
   
+    const netState = await NetInfo.fetch();
+    if (!netState.isConnected) {
+      Alert.alert('No Internet', 'Please check your connection.');
+      return;
+    }
+  
     const isSuccess = await loginUser(UserName, Password);
   
     if (isSuccess) {
@@ -176,14 +95,14 @@ const Login = () => {
       Alert.alert('Success', 'Login successful!', [
         { text: 'OK', onPress: () => navigation.replace('MainScreen') },
       ]);
-    } else {
-      Alert.alert('Login Failed', 'Invalid username or password.');
     }
+    // No need for else block here - because loginUser already shows alert if login failed
   };
   
   
+  
   return (
-    <AlertNotificationRoot>
+  <>
       <StatusBar backgroundColor={bgColor} />
       <ScrollView
         contentContainerStyle={{
@@ -351,7 +270,7 @@ const Login = () => {
           )}
         </View>
       </ScrollView>
-    </AlertNotificationRoot>
+      </>
   );
 };
 
