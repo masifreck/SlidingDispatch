@@ -23,6 +23,7 @@ import {
   useCameraPermission,
   useCodeScanner,
   useCameraDevice,
+  useFrameProcessor 
 } from 'react-native-vision-camera';
 import RNRestart from 'react-native-restart';
 import {check, request, PERMISSIONS, RESULTS} from 'react-native-permissions';
@@ -36,6 +37,12 @@ const wH = Dimensions.get('screen').height;
 let isFine;
 wW < 400 ? (isFine = true) : (isFine = false);
 const Width=Dimensions.get('window').width
+
+import Sound from 'react-native-sound';
+
+// Enable playback
+Sound.setCategory('Playback');
+
 const ScannerScreen = () => {
   const navigation = useNavigation();
   const isConnected = NetworkStatus(); // Use the hook
@@ -43,7 +50,21 @@ const ScannerScreen = () => {
   // console.log(isConnected);
 
   //Keyboard Variables=========================================================================
-
+  const playTickSound = () => {
+    const tick = new Sound(require('./assets/sound.mp3'), (error) => {
+      if (error) {
+        console.log('Failed to load the sound', error);
+        return;
+      }
+      tick.play((success) => {
+        if (!success) {
+          console.log('Sound did not play');
+        }
+        tick.release(); // free up resources
+      });
+    });
+  };
+  
 
   const showAlert = () => {
     Alert.alert(
@@ -192,24 +213,23 @@ useEffect(() => {
     codeTypes: ['qr'],
     onCodeScanned: async codes => {
       try {
-        const scannedCode = codes[0]?.value; // <-- Correct way to get value
+        const scannedCode = codes[0]?.value;
         if (scannedCode) {
-          setCameraActive(false);        // Stop camera
-          setlittleLoading(true);        // Start showing loader
-  
-         // console.log('Scanned QR Code:', scannedCode);
-  
-          setTimeout(() => {             // After 2 seconds show scanned data
-            setlittleLoading(false);     // Stop showing loader
-            setScannedData(scannedCode); // Show the scanned data
+          playTickSound(); // 🔊 Play tick sound
+          setCameraActive(false);
+          setlittleLoading(true);
+    
+          setTimeout(() => {
+            setlittleLoading(false);
+            setScannedData(scannedCode);
           }, 500);
         }
       } catch (error) {
-        //console.error('Error during scanning:', error);
         setScannedData('Scan Error!');
         setlittleLoading(false);
       }
-    },
+    }
+    
   });
   
 
@@ -234,7 +254,7 @@ useEffect(() => {
 
 
   const [IsLoading, setIsLoading] = useState(false);
-
+  const [torchOn, setTorchOn] = useState(false);
 
 
   const postData = async (Uid, ScannedData) => {
@@ -425,12 +445,25 @@ useEffect(() => {
   }}
 >
   {cameraActive ? (
+    <>
     <Camera
       style={StyleSheet.absoluteFill}
       device={device}
       isActive={cameraActive}
       codeScanner={codeScanner}
+      torch={torchOn ? 'on' : 'off'}
+      enableZoomGesture
+      zoom={0.2}
+      // frameProcessor={frameProcessor}
     />
+    <View style={styles.frameContainer}>
+    <View style={styles.frame} />
+  </View>
+
+    <TouchableOpacity onPress={() => setTorchOn(prev => !prev)}>
+  <Text style={{ color: 'black' }}>{torchOn ? 'Torch Off' : 'Torch On'}</Text>
+</TouchableOpacity>
+</>
   ) : littleLoading ? (
     <ActivityIndicator
       animating={true}
@@ -440,7 +473,13 @@ useEffect(() => {
   ) : (
     <>
      
-     <Text style={{ color: '#000', fontSize: 16, textAlign: 'justify' }}>{ScannedData}</Text>
+     {/* <Text style={{ color: '#000', fontSize: 16, textAlign: 'justify' }}>{ScannedData}</Text> */}
+     <TextInput
+     style={{elevation:4,backgroundColor:'white',width:'98%',borderRadius:10,position:'absolute',top:0,color:secondaryColor}}
+     value={ScannedData}
+     onChangeText={(t)=>setScannedData(t)}
+     multiline={true}
+     />
       <TouchableOpacity
         style={{
           backgroundColor: '#ffffff',
@@ -559,6 +598,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     flexDirection: 'row',
   },
+  frameContainer: {
+    position: 'absolute',
+    top: '25%',
+    left: '10%',
+    width: '80%',
+    height: '50%',
+    borderColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  frame: {
+    width: 250,
+    height: 250,
+    borderColor: secondaryColor,
+    borderWidth: 3,
+    borderRadius: 10,
+  },
+  
   button2: {
     backgroundColor: bgColor,
     borderRadius: 5,
